@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Лабиринт</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        #maze {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 1px;
+            margin: 20px;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+        }
+        .wall {
+            background-color: #333;
+        }
+        .start {
+            background-color: #4CAF50;
+            border-radius: 50%;
+        }
+        .end {
+            background-color: #F44336;
+            border-radius: 50%;
+        }
+        .player {
+            background-color: #2196F3;
+            border-radius: 50%;
+        }
+        .controls {
+            margin: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #steps {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        #message {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 10px;
+            height: 24px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Лабиринт</h1>
+    <div id="steps">Шаги: 0</div>
+    <div id="message"></div>
+    <div id="maze"></div>
+    <div class="controls">
+        <button id="up">↑</button><br>
+        <button id="left">←</button>
+        <button id="down">↓</button>
+        <button id="right">→</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Определение лабиринта (1 - стена, 0 - проход, S - старт, E - финиш)
+            const maze = [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 'S', 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+                [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+                [1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1],
+                [1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1],
+                [1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1],
+                [1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 'E', 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            ];
+
+            let playerPos = { x: 1, y: 1 };
+            let steps = 0;
+            let gameOver = false;
+
+            const mazeElement = document.getElementById('maze');
+            const stepsElement = document.getElementById('steps');
+            const messageElement = document.getElementById('message');
+
+            // Создание лабиринта
+            function createMaze() {
+                mazeElement.innerHTML = '';
+                for (let y = 0; y < maze.length; y++) {
+                    for (let x = 0; x < maze[y].length; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.id = `cell-${x}-${y}`;
+
+                        if (maze[y][x] === 1) {
+                            cell.classList.add('wall');
+                        } else if (maze[y][x] === 'S') {
+                            cell.classList.add('start');
+                        } else if (maze[y][x] === 'E') {
+                            cell.classList.add('end');
+                        }
+
+                        mazeElement.appendChild(cell);
+                    }
+                }
+                updatePlayerPosition();
+            }
+
+            // Обновление позиции игрока
+            function updatePlayerPosition() {
+                // Удаляем класс player со всех ячеек
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.classList.remove('player');
+                });
+
+                // Добавляем класс player на текущую позицию
+                const playerCell = document.getElementById(`cell-${playerPos.x}-${playerPos.y}`);
+                if (playerCell) {
+                    playerCell.classList.add('player');
+                }
+            }
+
+            // Проверка на победу
+            function checkWin() {
+                if (maze[playerPos.y][playerPos.x] === 'E') {
+                    gameOver = true;
+                    messageElement.textContent = `Победа! Вы прошли лабиринт за ${steps} шагов!`;
+                }
+            }
+
+            // Обработка движения
+            function movePlayer(dx, dy) {
+                if (gameOver) return;
+
+                const newX = playerPos.x + dx;
+                const newY = playerPos.y + dy;
+
+                // Проверка, можно ли переместиться в новую позицию
+                if (
+                    newX >= 0 && newX < maze[0].length &&
+                    newY >= 0 && newY < maze.length &&
+                    maze[newY][newX] !== 1
+                ) {
+                    playerPos.x = newX;
+                    playerPos.y = newY;
+                    steps++;
+                    stepsElement.textContent = `Шаги: ${steps}`;
+                    updatePlayerPosition();
+                    checkWin();
+                }
+            }
+
+            // Инициализация игры
+            createMaze();
+
+            // Обработчики кнопок
+            document.getElementById('up').addEventListener('click', () => movePlayer(0, -1));
+            document.getElementById('down').addEventListener('click', () => movePlayer(0, 1));
+            document.getElementById('left').addEventListener('click', () => movePlayer(-1, 0));
+            document.getElementById('right').addEventListener('click', () => movePlayer(1, 0));
+
+            // Обработчики клавиатуры
+            document.addEventListener('keydown', (e) => {
+                switch (e.key) {
+                    case 'ArrowUp': movePlayer(0, -1); break;
+                    case 'ArrowDown': movePlayer(0, 1); break;
+                    case 'ArrowLeft': movePlayer(-1, 0); break;
+                    case 'ArrowRight': movePlayer(1, 0); break;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
